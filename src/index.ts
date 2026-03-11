@@ -1,40 +1,30 @@
-declare module "bplist-creator" {
-  type PlistJsObj = any[] | Record<any, any>;
+import { WritableStreamBuffer } from "nano-stream-buffers";
 
-  type BPlistCreator = (object: PlistJsObj) => Buffer;
-
-  const BPlistCreator: BPlistCreator;
-  export = BPlistCreator;
+class Real {
+  value: unknown;
+  constructor(value: unknown) {
+    this.value = value;
+  }
 }
 
-const streamBuffers = require("stream-buffers");
+type PlistJsObj = any[] | Record<any, any>;
 
-const debug = false;
+type obj = NonNullable<unknown>;
 
-function Real(value) {
-  this.value = value;
-}
-
-module.exports = function (dicts) {
-  const buffer = new streamBuffers.WritableStreamBuffer();
+function BPlistCreator(dicts: PlistJsObj): Buffer {
+  const buffer = new WritableStreamBuffer();
   buffer.write(Buffer.from("bplist00"));
 
-  if (debug) {
-    console.log("create", require("node:util").inspect(dicts, false, 10));
-  }
-
-  if (dicts instanceof Array && dicts.length === 1) {
+  if (Array.isArray(dicts) && dicts.length === 1) {
     dicts = dicts[0];
   }
 
   let entries = toEntries(dicts);
-  if (debug) {
-    console.log("entries", entries);
-  }
+
   const idSizeInBytes = computeIdSizeInBytes(entries.length);
-  const offsets = [];
-  let offsetSizeInBytes;
-  let offsetTableOffset;
+  const offsets: number[] = [];
+  let offsetSizeInBytes: number;
+  let offsetTableOffset: number;
 
   updateEntryIds();
 
@@ -76,66 +66,26 @@ module.exports = function (dicts) {
   }
 
   function writeTrailer() {
-    if (debug) {
-      console.log("0x" + buffer.size().toString(16), "writeTrailer");
-    }
     // 6 null bytes
     buffer.write(Buffer.from([0, 0, 0, 0, 0, 0]));
 
     // size of an offset
-    if (debug) {
-      console.log(
-        "0x" + buffer.size().toString(16),
-        "writeTrailer(offsetSizeInBytes):",
-        offsetSizeInBytes,
-      );
-    }
     writeByte(offsetSizeInBytes);
 
     // size of a ref
-    if (debug) {
-      console.log(
-        "0x" + buffer.size().toString(16),
-        "writeTrailer(offsetSizeInBytes):",
-        idSizeInBytes,
-      );
-    }
     writeByte(idSizeInBytes);
 
     // number of objects
-    if (debug) {
-      console.log(
-        "0x" + buffer.size().toString(16),
-        "writeTrailer(number of objects):",
-        entries.length,
-      );
-    }
     writeLong(entries.length);
 
     // top object
-    if (debug) {
-      console.log(
-        "0x" + buffer.size().toString(16),
-        "writeTrailer(top object)",
-      );
-    }
     writeLong(0);
 
     // offset table offset
-    if (debug) {
-      console.log(
-        "0x" + buffer.size().toString(16),
-        "writeTrailer(offset table offset):",
-        offsetTableOffset,
-      );
-    }
     writeLong(offsetTableOffset);
   }
 
   function writeOffsetTable() {
-    if (debug) {
-      console.log("0x" + buffer.size().toString(16), "writeOffsetTable");
-    }
     offsetTableOffset = buffer.size();
     offsetSizeInBytes = computeOffsetSizeInBytes(offsetTableOffset);
     offsets.forEach(function (offset) {
@@ -183,21 +133,6 @@ module.exports = function (dicts) {
   }
 
   function writeDict(entry) {
-    if (debug) {
-      const keysStr = entry.entryKeys.map(function (k) {
-        return k.id;
-      });
-      const valsStr = entry.entryValues.map(function (k) {
-        return k.id;
-      });
-      console.log(
-        "0x" + buffer.size().toString(16),
-        "writeDict",
-        "(id: " + entry.id + ")",
-        "(keys: " + keysStr + ")",
-        "(values: " + valsStr + ")",
-      );
-    }
     writeIntHeader(0xd, entry.entryKeys.length);
     entry.entryKeys.forEach(function (entry) {
       writeID(entry.id);
@@ -208,16 +143,6 @@ module.exports = function (dicts) {
   }
 
   function writeNumber(entry) {
-    if (debug) {
-      console.log(
-        "0x" + buffer.size().toString(16),
-        "writeNumber",
-        entry.value,
-        " (type: " + entry.type + ")",
-        "(id: " + entry.id + ")",
-      );
-    }
-
     if (typeof entry.value === "bigint") {
       const width = 16;
       const hex = entry.value.toString(width);
@@ -254,28 +179,11 @@ module.exports = function (dicts) {
   }
 
   function writeUID(entry) {
-    if (debug) {
-      console.log(
-        "0x" + buffer.size().toString(16),
-        "writeUID",
-        entry.value,
-        " (type: " + entry.type + ")",
-        "(id: " + entry.id + ")",
-      );
-    }
-
     writeIntHeader(0x8, 0x0);
     writeID(entry.value);
   }
 
   function writeArray(entry) {
-    if (debug) {
-      console.log(
-        "0x" + buffer.size().toString(16),
-        "writeArray (length: " + entry.entries.length + ")",
-        "(id: " + entry.id + ")",
-      );
-    }
     writeIntHeader(0xa, entry.entries.length);
     entry.entries.forEach(function (e) {
       writeID(e.id);
@@ -283,26 +191,10 @@ module.exports = function (dicts) {
   }
 
   function writeBoolean(entry) {
-    if (debug) {
-      console.log(
-        "0x" + buffer.size().toString(16),
-        "writeBoolean",
-        entry.value,
-        "(id: " + entry.id + ")",
-      );
-    }
     writeByte(entry.value ? 0x09 : 0x08);
   }
 
   function writeString(entry) {
-    if (debug) {
-      console.log(
-        "0x" + buffer.size().toString(16),
-        "writeString",
-        entry.value,
-        "(id: " + entry.id + ")",
-      );
-    }
     if (entry.type === "string-utf16" || mustBeUtf16(entry.value)) {
       const utf16 = Buffer.from(entry.value, "ucs2");
       writeIntHeader(0x6, utf16.length / 2);
@@ -321,14 +213,6 @@ module.exports = function (dicts) {
   }
 
   function writeData(entry) {
-    if (debug) {
-      console.log(
-        "0x" + buffer.size().toString(16),
-        "writeData",
-        entry.value,
-        "(id: " + entry.id + ")",
-      );
-    }
     writeIntHeader(0x4, entry.value.length);
     buffer.write(entry.value);
   }
@@ -369,7 +253,7 @@ module.exports = function (dicts) {
     writeBytes(id, idSizeInBytes);
   }
 
-  function writeBytes(value, bytes, is_signedint) {
+  function writeBytes(value, bytes, is_signedint?: boolean) {
     // write low-order bytes big-endian style
     const buf = Buffer.alloc(bytes);
     let z = 0;
@@ -389,14 +273,14 @@ module.exports = function (dicts) {
   function mustBeUtf16(string) {
     return Buffer.byteLength(string, "utf8") != string.length;
   }
-};
+}
 
-function toEntries(dicts) {
+function toEntries(dicts: obj) {
   if (dicts.bplistOverride) {
     return [dicts];
   }
 
-  if (dicts instanceof Array) {
+  if (Array.isArray(dicts)) {
     return toEntriesArray(dicts);
   } else if (dicts instanceof Buffer) {
     return [
@@ -466,10 +350,7 @@ function toEntries(dicts) {
   }
 }
 
-function toEntriesArray(arr) {
-  if (debug) {
-    console.log("toEntriesArray");
-  }
+function toEntriesArray(arr: obj[]) {
   let results = [
     {
       type: "array",
@@ -485,9 +366,6 @@ function toEntriesArray(arr) {
 }
 
 function toEntriesObject(dict) {
-  if (debug) {
-    console.log("toEntriesObject");
-  }
   let results = [
     {
       type: "dict",
@@ -508,7 +386,7 @@ function toEntriesObject(dict) {
   return results;
 }
 
-function computeOffsetSizeInBytes(maxOffset) {
+function computeOffsetSizeInBytes(maxOffset: number) {
   if (maxOffset < 256) {
     return 1;
   }
@@ -521,7 +399,7 @@ function computeOffsetSizeInBytes(maxOffset) {
   return 8;
 }
 
-function computeIdSizeInBytes(numberOfIds) {
+function computeIdSizeInBytes(numberOfIds: number) {
   if (numberOfIds < 256) {
     return 1;
   }
@@ -531,4 +409,4 @@ function computeIdSizeInBytes(numberOfIds) {
   return 4;
 }
 
-module.exports.Real = Real;
+export { BPlistCreator as default, BPlistCreator, Real };

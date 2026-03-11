@@ -3,8 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import bplistParser from "bplist-parser";
-
-import bplistCreator from "../src/index";
+import bplistCreator from "nano-bplist-creator";
 
 const testFiles = [
   "sample1.bplist",
