@@ -1,0 +1,8 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "rules": {
+    "prefer-node-protocol": "error",
+    "no-var": "error",
+    "prefer-const": "error"
+  }
+}

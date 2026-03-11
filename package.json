@@ -1,28 +1,42 @@
 {
   "name": "bplist-creator",
-  "version": "0.1.1",
+  "version": "0.0.0",
   "description": "Binary Mac OS X Plist (property list) creator.",
-  "main": "bplistCreator.js",
-  "scripts": {
-    "test": "./node_modules/nodeunit/bin/nodeunit test"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/nearinfinity/node-bplist-creator.git"
-  },
   "keywords": [
     "bplist",
-    "plist",
-    "creator"
+    "creator",
+    "plist"
   ],
-  "author": "Joe Ferner",
   "license": "MIT",
-  "devDependencies": {
-    "bplist-parser": "0.3.0",
-    "is-buffer": "1.1.x",
-    "nodeunit": "0.9.x"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/plist-js/node-bplist-creator.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "u": "bun format ; bun lint ; bun run build && bun run test",
+    "format": "oxfmt",
+    "lint": "oxlint",
+    "test": "bun test",
+    "build": "tsdown",
+    "prepublishOnly": "bun run build"
   },
   "dependencies": {
     "stream-buffers": "2.2.x"
+  },
+  "devDependencies": {
+    "bplist-parser": "0.3.0",
+    "is-buffer": "1.1.x",
+    "oxfmt": "^0.37.0",
+    "oxlint": "^1.50.0",
+    "tsdown": "^0.21.1",
+    "typescript": "^5.9.3"
   }
 }
