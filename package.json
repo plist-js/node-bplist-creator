@@ -1,5 +1,5 @@
 {
-  "name": "bplist-creator",
+  "name": "nano-bplist-creator",
   "version": "0.0.0",
   "description": "Binary Mac OS X Plist (property list) creator.",
   "keywords": [
@@ -32,8 +32,7 @@
     "stream-buffers": "2.2.x"
   },
   "devDependencies": {
-    "bplist-parser": "0.3.0",
-    "is-buffer": "1.1.x",
+    "bplist-parser": "0.3.2",
     "oxfmt": "^0.37.0",
     "oxlint": "^1.50.0",
     "tsdown": "^0.21.1",

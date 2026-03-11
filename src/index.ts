@@ -7,34 +7,34 @@ declare module "bplist-creator" {
   export = BPlistCreator;
 }
 
-var streamBuffers = require("stream-buffers");
+const streamBuffers = require("stream-buffers");
 
-var debug = false;
+const debug = false;
 
 function Real(value) {
   this.value = value;
 }
 
 module.exports = function (dicts) {
-  var buffer = new streamBuffers.WritableStreamBuffer();
+  const buffer = new streamBuffers.WritableStreamBuffer();
   buffer.write(Buffer.from("bplist00"));
 
   if (debug) {
-    console.log("create", require("util").inspect(dicts, false, 10));
+    console.log("create", require("node:util").inspect(dicts, false, 10));
   }
 
   if (dicts instanceof Array && dicts.length === 1) {
     dicts = dicts[0];
   }
 
-  var entries = toEntries(dicts);
+  let entries = toEntries(dicts);
   if (debug) {
     console.log("entries", entries);
   }
-  var idSizeInBytes = computeIdSizeInBytes(entries.length);
-  var offsets = [];
-  var offsetSizeInBytes;
-  var offsetTableOffset;
+  const idSizeInBytes = computeIdSizeInBytes(entries.length);
+  const offsets = [];
+  let offsetSizeInBytes;
+  let offsetTableOffset;
 
   updateEntryIds();
 
@@ -52,8 +52,8 @@ module.exports = function (dicts) {
   return buffer.getContents();
 
   function updateEntryIds() {
-    var strings = {};
-    var entryId = 0;
+    const strings = {};
+    let entryId = 0;
     entries.forEach(function (entry) {
       if (entry.id) {
         return;
@@ -178,16 +178,16 @@ module.exports = function (dicts) {
 
   function writeDate(entry) {
     writeByte(0x33);
-    var date = Date.parse(entry.value) / 1000 - 978307200;
+    const date = Date.parse(entry.value) / 1000 - 978307200;
     writeDouble(date);
   }
 
   function writeDict(entry) {
     if (debug) {
-      var keysStr = entry.entryKeys.map(function (k) {
+      const keysStr = entry.entryKeys.map(function (k) {
         return k.id;
       });
-      var valsStr = entry.entryValues.map(function (k) {
+      const valsStr = entry.entryValues.map(function (k) {
         return k.id;
       });
       console.log(
@@ -219,9 +219,9 @@ module.exports = function (dicts) {
     }
 
     if (typeof entry.value === "bigint") {
-      var width = 16;
-      var hex = entry.value.toString(width);
-      var buf = Buffer.from(
+      const width = 16;
+      const hex = entry.value.toString(width);
+      const buf = Buffer.from(
         hex.padStart(width * 2, "0").slice(0, width * 2),
         "hex",
       );
@@ -304,17 +304,17 @@ module.exports = function (dicts) {
       );
     }
     if (entry.type === "string-utf16" || mustBeUtf16(entry.value)) {
-      var utf16 = Buffer.from(entry.value, "ucs2");
+      const utf16 = Buffer.from(entry.value, "ucs2");
       writeIntHeader(0x6, utf16.length / 2);
       // needs to be big endian so swap the bytes
-      for (var i = 0; i < utf16.length; i += 2) {
-        var t = utf16[i + 0];
+      for (let i = 0; i < utf16.length; i += 2) {
+        const t = utf16[i + 0];
         utf16[i + 0] = utf16[i + 1];
         utf16[i + 1] = t;
       }
       buffer.write(utf16);
     } else {
-      var utf8 = Buffer.from(entry.value, "ascii");
+      const utf8 = Buffer.from(entry.value, "ascii");
       writeIntHeader(0x5, utf8.length);
       buffer.write(utf8);
     }
@@ -342,7 +342,7 @@ module.exports = function (dicts) {
   }
 
   function writeDouble(v) {
-    var buf = Buffer.alloc(8);
+    const buf = Buffer.alloc(8);
     buf.writeDoubleBE(v, 0);
     buffer.write(buf);
   }
@@ -371,8 +371,8 @@ module.exports = function (dicts) {
 
   function writeBytes(value, bytes, is_signedint) {
     // write low-order bytes big-endian style
-    var buf = Buffer.alloc(bytes);
-    var z = 0;
+    const buf = Buffer.alloc(bytes);
+    let z = 0;
 
     // javascript doesn't handle large numbers
     while (bytes > 4) {
@@ -380,7 +380,7 @@ module.exports = function (dicts) {
       bytes--;
     }
 
-    for (var i = bytes - 1; i >= 0; i--) {
+    for (let i = bytes - 1; i >= 0; i--) {
       buf[z++] = value >> (8 * i);
     }
     buffer.write(buf);
@@ -470,14 +470,14 @@ function toEntriesArray(arr) {
   if (debug) {
     console.log("toEntriesArray");
   }
-  var results = [
+  let results = [
     {
       type: "array",
       entries: [],
     },
   ];
   arr.forEach(function (v) {
-    var entry = toEntries(v);
+    const entry = toEntries(v);
     results[0].entries.push(entry[0]);
     results = results.concat(entry);
   });
@@ -488,7 +488,7 @@ function toEntriesObject(dict) {
   if (debug) {
     console.log("toEntriesObject");
   }
-  var results = [
+  let results = [
     {
       type: "dict",
       entryKeys: [],
@@ -496,12 +496,12 @@ function toEntriesObject(dict) {
     },
   ];
   Object.keys(dict).forEach(function (key) {
-    var entryKey = toEntries(key);
+    const entryKey = toEntries(key);
     results[0].entryKeys.push(entryKey[0]);
     results = results.concat(entryKey[0]);
   });
   Object.keys(dict).forEach(function (key) {
-    var entryValue = toEntries(dict[key]);
+    const entryValue = toEntries(dict[key]);
     results[0].entryValues.push(entryValue[0]);
     results = results.concat(entryValue);
   });
